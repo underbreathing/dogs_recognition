@@ -6,8 +6,12 @@ import cv2
 import telebot
 from PIL import Image
 from io import BytesIO
+from environs import Env
 
-bot = telebot.TeleBot('6848633548:AAGTCZuyAWElXRbV1LiQZozkyH1xkouTj9I')
+env = Env()
+env.read_env()
+
+bot = telebot.TeleBot(env('BOT_TOKEN'))
 IMAGE_SIZE = 256
 load_model = models.load_model('model/model')
 
@@ -17,12 +21,13 @@ def get_info(dog_number):
     cursor = None
     try:
         # Подключение к существующей базе данных
-        connection_1 = psycopg2.connect(user='postgres',
-                                        # пароль, который указали при установке PostgreSQL
-                                        password='pol',
-                                        host='127.0.0.1',
-                                        port=5433,
-                                        database='dogs')
+        connection_1 = psycopg2.connect(
+            user=env('POSTGRES_USER'),
+            password=env('POSTGRES_PASSWORD'),
+            host=env('POSTGRES_HOST'),
+            port=env.int('POSTGRES_PORT'),
+            database=env('POSTGRES_DB'),
+        )
 
         # Курсор для выполнения операций с базой данных
         cursor = connection_1.cursor()
@@ -80,7 +85,6 @@ def check_photo(message):
 
         bot.reply_to(message, 'порода называется: {}'.format(name))
         bot.reply_to(message, 'Вот ее описание, взгляните: {}'.format(info))
-        # bot.reply_to(message, 'вы отправили фото не собаки')
 
 
 @bot.message_handler(content_types=['document'])
@@ -93,7 +97,6 @@ def check_document(message):
         bot.reply_to(message, "Отправьте фото собаки для определения породы.")
 
 
-################################3
 @bot.message_handler(func=lambda message: True)
 def handle_all(message):
     if message.photo:
@@ -102,4 +105,5 @@ def handle_all(message):
         bot.send_message(message.chat.id, 'Отправьте фотографию собаки для определения породы')
 
 
-bot.polling()
+if __name__ == '__main__':
+    bot.polling()
